@@ -1,0 +1,4 @@
+.DS_Store
+./build/mariadb/sql
+./build/mariadb/data
+.idea

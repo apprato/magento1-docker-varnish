@@ -1,0 +1,75 @@
+version: '2'
+services:
+  mariadb:
+    hostname: mariadb
+    restart: always
+    image: mariadb:10.0.27
+    ports:
+      - 8006:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=magento
+      - MYSQL_DATABASE=magento
+      - MYSQL_USER=magento
+      - MYSQL_PASSWORD=magento
+    volumes:
+      - ./build/mariadb/sql:/tmp/sql
+      - ./build/mariadb/data:/var/lib/mysql
+
+  php:
+    hostname: php:5.6
+    restart: always
+    build: build/php
+    links:
+      - mariadb
+      - redis
+    expose:
+      - 9000
+    links:
+     - mariadb
+    volumes:
+      - ./www:/var/www/html/magento.dev
+      - ./build/php/php.ini:/usr/local/etc/php/php.ini
+
+  nginx:
+    hostname: nginx
+    restart: always
+    image: nginx:latest
+    build: build/nginx    
+    links:
+      - php
+    expose:
+      - 8080
+    ports:
+      - 8080:8080
+    volumes:
+      - ./build/nginx/sites-enabled/magento.conf:/etc/nginx/conf.d/magento.conf
+      - ./www:/var/www/html/magento2.dev
+      - ./build/nginx/nginx.conf:/etc/nginx/nginx.conf
+
+  redis:
+    hostname: redis
+    restart: always
+    image: redis
+    expose:
+      - 6480
+    ports:
+      - 6480:6379
+
+  varnish:
+    hostname: varnish
+    restart: always
+    build: build/varnish
+    links:
+     - nginx
+    ports:
+      - 6080:6080
+      - 6082:6082
+    volumes:
+      - ./build/varnish/default_development.vcl:/etc/varnish/default.vcl
+      - ./build/varnish/secret:/etc/varnish/secret
+      - ./build/varnish/start-varnish.sh:/start-varnish.sh
+    environment:
+      - CACHE_SIZE=256M
+
+
+
